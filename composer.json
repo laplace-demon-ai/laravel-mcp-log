@@ -1,0 +1,49 @@
+{
+    "name": ":vendor_slug/:package_slug",
+    "description": ":package_description",
+    "keywords": [
+        ":vendor_name",
+        "laravel",
+        ":package_slug",
+        "php 8"
+    ],
+    "type": "package",
+    "homepage": "https://github.com/:vendor_slug/:package_slug",
+    "license": "MIT",
+    "authors": [
+        {
+            "name": ":author_name"
+        }
+    ],
+    "require": {
+        "php": "^8.4",
+        "spatie/laravel-data": "^4.17"
+    },
+    "require-dev": {
+        "orchestra/testbench": "^9.6.1",
+        "phpunit/phpunit": "^11.4",
+        "laravel/pint": "^1.24"
+    },
+    "autoload": {
+        "psr-4": {
+          "VendorName\\Skeleton\\": "src/"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+          "VendorName\\Skeleton\\Tests\\": "tests/"
+        }
+    },
+    "extra": {
+        "laravel": {
+          "providers": [
+            "VendorName\\Skeleton\\SkeletonServiceProvider"
+          ]
+        }
+    },
+    "scripts": {
+        "test": "phpunit"
+    },
+    "minimum-stability": "dev",
+    "prefer-stable": true
+}
