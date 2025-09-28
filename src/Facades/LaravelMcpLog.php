@@ -2,20 +2,20 @@
 
 declare(strict_types=1);
 
-namespace VendorName\Skeleton\Facades;
+namespace LaplaceDemonAI\LaravelMcpLog\Facades;
 
 use Illuminate\Support\Facades\Facade;
 
 /**
- * @see \VendorName\Skeleton\Skeleton
+ * @see \LaplaceDemonAI\LaravelMcpLog\LaravelMcpLog
  */
-final class Skeleton extends Facade
+final class LaravelMcpLog extends Facade
 {
     /**
      * Get the registered name of the component.
      */
     protected static function getFacadeAccessor(): string
     {
-        return \VendorName\Skeleton\Skeleton::class;
+        return \LaplaceDemonAI\LaravelMcpLog\LaravelMcpLog::class;
     }
 }

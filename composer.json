@@ -1,18 +1,18 @@
 {
-    "name": ":vendor_slug/:package_slug",
-    "description": ":package_description",
+    "name": "laplace-demon-ai/laravel-mcp-log",
+    "description": "MCP tool for Laravel log analysing with AI.",
     "keywords": [
-        ":vendor_name",
+        "Laplace Demon AI",
         "laravel",
-        ":package_slug",
+        "laravel-mcp-log",
         "php 8"
     ],
     "type": "package",
-    "homepage": "https://github.com/:vendor_slug/:package_slug",
+    "homepage": "https://github.com/laplace-demon-ai/laravel-mcp-log",
     "license": "MIT",
     "authors": [
         {
-            "name": ":author_name"
+            "name": "Moe Mizrak"
         }
     ],
     "require": {
@@ -26,18 +26,18 @@
     },
     "autoload": {
         "psr-4": {
-          "VendorName\\Skeleton\\": "src/"
+          "LaplaceDemonAI\\LaravelMcpLog\\": "src/"
         }
     },
     "autoload-dev": {
         "psr-4": {
-          "VendorName\\Skeleton\\Tests\\": "tests/"
+          "LaplaceDemonAI\\LaravelMcpLog\\Tests\\": "tests/"
         }
     },
     "extra": {
         "laravel": {
           "providers": [
-            "VendorName\\Skeleton\\SkeletonServiceProvider"
+            "LaplaceDemonAI\\LaravelMcpLog\\LaravelMcpLogServiceProvider"
           ]
         }
     },
