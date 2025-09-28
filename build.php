@@ -9,7 +9,7 @@ declare(strict_types=1);
  */
 function ask(string $question, string $default = ''): string
 {
-    $answer = readline('-> '.$question.($default ? " ({$default})" : null).': ');
+    $answer = readline('-> ' . $question . ($default ? " ({$default})" : null) . ': ');
 
     if (! $answer) {
         return $default;
@@ -24,7 +24,7 @@ function ask(string $question, string $default = ''): string
  */
 function confirm(string $question, bool $default = false): bool
 {
-    $answer = ask($question.' ('.($default ? 'Y/n' : 'y/N').')');
+    $answer = ask($question . ' (' . ($default ? 'Y/n' : 'y/N') . ')');
 
     if (! $answer) {
         return $default;
@@ -38,7 +38,7 @@ function confirm(string $question, bool $default = false): bool
  */
 function writeln(string $line): void
 {
-    echo $line.PHP_EOL;
+    echo $line . PHP_EOL;
 }
 
 /**
@@ -111,7 +111,7 @@ function determineSeparator(string $path): string
  */
 function replacePlaceholders(): array
 {
-    return explode(PHP_EOL, run('grep -E -r -l -i ":author|:vendor|:package|VendorName|skeleton|vendor_name|vendor_slug" --exclude-dir=vendor ./* ./.github/* | grep -v '.basename(__FILE__)));
+    return explode(PHP_EOL, run('grep -E -r -l -i ":author|:vendor|:package|VendorName|skeleton|vendor_name|vendor_slug" --exclude-dir=vendor ./* ./.github/* | grep -v ' . basename(__FILE__)));
 }
 
 /**
@@ -139,7 +139,8 @@ function getGitHubApiEndpoint(string $endpoint): ?stdClass
         if ($statusCode === 200) {
             return json_decode($response);
         }
-    } catch (Exception $e) {}
+    } catch (Exception $e) {
+    }
 
     return null;
 }
@@ -182,7 +183,8 @@ function guessGitHubUsernameUsingCli()
         if (preg_match('/logged in to github\.com as ([a-zA-Z-_]+).+/', shell_exec('gh auth status -h github.com 2>&1'), $matches)) {
             return $matches[1];
         }
-    } catch (Exception $e) {}
+    } catch (Exception $e) {
+    }
 
     return '';
 }
@@ -297,10 +299,10 @@ foreach ($files as $file) {
     ]);
 
     match (true) {
-        str_contains($file, determineSeparator('src/Skeleton.php')) => rename($file, determineSeparator('./src/'.$className.'.php')),
-        str_contains($file, determineSeparator('src/SkeletonServiceProvider.php')) => rename($file, determineSeparator('./src/'.$className.'ServiceProvider.php')),
-        str_contains($file, determineSeparator('src/Facades/Skeleton.php')) => rename($file, determineSeparator('./src/Facades/'.$className.'.php')),
-        str_contains($file, determineSeparator('config/skeleton.php')) => rename($file, determineSeparator('./config/'.$packageSlug.'.php')),
+        str_contains($file, determineSeparator('src/Skeleton.php')) => rename($file, determineSeparator('./src/' . $className . '.php')),
+        str_contains($file, determineSeparator('src/SkeletonServiceProvider.php')) => rename($file, determineSeparator('./src/' . $className . 'ServiceProvider.php')),
+        str_contains($file, determineSeparator('src/Facades/Skeleton.php')) => rename($file, determineSeparator('./src/Facades/' . $className . '.php')),
+        str_contains($file, determineSeparator('config/skeleton.php')) => rename($file, determineSeparator('./config/' . $packageSlug . '.php')),
         str_contains($file, 'README.md') => removeReadmeParagraphs($file),
         default => [],
     };
