@@ -5,6 +5,9 @@ declare(strict_types=1);
 namespace LaplaceDemonAI\LaravelMcpLog;
 
 use Illuminate\Support\ServiceProvider;
+use LaplaceDemonAI\LaravelMcpLog\Servers\LogReaderServer;
+use Laravel\Mcp\Facades\Mcp;
+use MoeMizrak\LaravelLogReader\LaravelLogReaderServiceProvider;
 
 final class LaravelMcpLogServiceProvider extends ServiceProvider
 {
@@ -13,6 +16,9 @@ final class LaravelMcpLogServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
+        // Register the Log Reader Server
+        Mcp::local('log-reader', LogReaderServer::class);
+
         $this->registerPublishing();
     }
 
@@ -22,6 +28,8 @@ final class LaravelMcpLogServiceProvider extends ServiceProvider
     public function register(): void
     {
         $this->configure();
+
+        $this->configureLaravelLogReader();
     }
 
     /**
@@ -52,5 +60,30 @@ final class LaravelMcpLogServiceProvider extends ServiceProvider
                 __DIR__ . '/../config/laravel-mcp-log.php' => config_path('laravel-mcp-log.php'),
             ], 'laravel-mcp-log');
         }
+    }
+
+    /**
+     * Configure the laravel-log-reader package based on laravel-mcp-log config.
+     */
+    protected function configureLaravelLogReader(): void
+    {
+        // Map laravel-mcp-log config to laravel-log-reader config if not already set
+        if (! config('laravel-log-reader')) {
+            config(['laravel-log-reader.driver' => config('laravel-mcp-log.log_reader.driver')]);
+            config(['laravel-log-reader.file.path' => config('laravel-mcp-log.log_reader.file.path')]);
+            config(['laravel-log-reader.file.chunk_size' => config('laravel-mcp-log.log_reader.file.chunk_size')]);
+            config(['laravel-log-reader.db.table' => config('laravel-mcp-log.log_reader.db.table')]);
+            config(['laravel-log-reader.db.connection' => config('laravel-mcp-log.log_reader.db.connection')]);
+            config(['laravel-log-reader.db.chunk_size' => config('laravel-mcp-log.log_reader.db.chunk_size')]);
+            config([
+                'laravel-log-reader.db.columns' => config('laravel-mcp-log.log_reader.db.columns'),
+            ]);
+            config([
+                'laravel-log-reader.db.searchable_columns' => config('laravel-mcp-log.log_reader.db.searchable_columns'),
+            ]);
+        }
+
+        // Register LaravelLogReaderServiceProvider
+        $this->app->register(LaravelLogReaderServiceProvider::class);
     }
 }

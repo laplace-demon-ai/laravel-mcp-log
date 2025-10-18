@@ -17,7 +17,8 @@
     ],
     "require": {
         "php": "^8.4",
-        "spatie/laravel-data": "^4.17"
+        "laravel/mcp": "^0.3.0",
+        "moe-mizrak/laravel-log-reader": "^0.0.3"
     },
     "require-dev": {
         "orchestra/testbench": "^9.6.1",
