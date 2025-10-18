@@ -7,6 +7,7 @@ namespace LaplaceDemonAI\LaravelMcpLog\Tools;
 use Illuminate\JsonSchema\JsonSchema;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Carbon;
+use Laravel\Mcp\Response;
 use Laravel\Mcp\Server\Tool;
 use MoeMizrak\LaravelLogReader\Data\LogData;
 use MoeMizrak\LaravelLogReader\Facades\LogReader;
@@ -27,7 +28,18 @@ final class LogReaderTool extends Tool
         $this->description = config('laravel-mcp-log.tool.description');
     }
 
-    public function handle(array $input = []): array
+    /**
+     * @param array{
+     *    query?: string,
+     *    filters?: array{
+     *       level?: string,
+     *       date_from?: string,
+     *       date_to?: string,
+     *       channel?: string,
+     *    }
+     * } $input
+     */
+    public function handle(array $input = []): Response
     {
         try {
             $query = (string) Arr::get($input, 'query', '');
@@ -53,41 +65,34 @@ final class LogReaderTool extends Tool
             /** @var array<int, array<string, mixed>> $data */
             $data = array_map(static fn (LogData $log): array => $log->toArray(), $results);
 
-            return [
-                'success' => true,
-                'data' => $data,
-                'count' => count($data),
-            ];
+            // Convert data to JSON string
+            $dataJson = json_encode($data);
+
+            return Response::text(<<<MARKDOWN
+            Here is the log data you requested:
+
+            $dataJson
+            MARKDOWN);
         } catch (Throwable $e) {
-            return [
-                'success' => false,
-                'error' => 'Failed to read logs. Check server logs for details.',
-            ];
+            return Response::error('Failed to read logs. Check server logs for details.');
         }
     }
 
     public function schema(JsonSchema $schema): array
     {
         return [
-            'type' => 'object',
-            'properties' => [
-                'query' => [
-                    'type' => 'string',
-                    'description' => 'Free text search in logs.',
-                ],
-                'filters' => [
-                    'type' => 'object',
-                    'description' => 'Filter by log fields.',
-                    'properties' => [
-                        'level' => ['type' => 'string', 'description' => 'Log level (error, info, etc.)'],
-                        'date_from' => ['type' => 'string', 'format' => 'date'],
-                        'date_to' => ['type' => 'string', 'format' => 'date'],
-                        'channel' => ['type' => 'string', 'description' => 'Log channel name e.g. "production", "local" etc.'],
-                    ],
-                    'additionalProperties' => true,
-                ],
-            ],
-            'additionalProperties' => false,
+            'query' => $schema->string()
+                ->description('Free text search in logs.')
+                ->nullable(),
+
+            'filters' => $schema->object([
+                'level' => $schema->string()->description('Log level (error, info, etc.)')->nullable(),
+                'date_from' => $schema->string()->description('Start date (YYYY-MM-DD)')->nullable(),
+                'date_to' => $schema->string()->description('End date (YYYY-MM-DD)')->nullable(),
+                'channel' => $schema->string()->description('Log channel, e.g. "production", "local"')->nullable(),
+            ])
+                ->description('Optional filters applied to logs.')
+                ->nullable(),
         ];
     }
 
