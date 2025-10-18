@@ -15,7 +15,9 @@ use Throwable;
 final class LogReaderTool extends Tool
 {
     protected string $name;
+
     protected string $title;
+
     protected string $description;
 
     public function __construct()
