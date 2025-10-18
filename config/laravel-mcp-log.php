@@ -24,7 +24,7 @@ return [
         'driver' => env('LOG_READER_DRIVER', LogDriverType::FILE->value),
 
         'file' => [
-            'path' => env('LOG_FILE_PATH', storage_path('storage/logs/laravel.log')),
+            'path' => env('LOG_FILE_PATH', storage_path('logs/laravel.log')),
             'chunk_size' => env('LOG_READER_FILE_CHUNK_SIZE', 512 * 1024), // 512KB for file reading
         ],
 
