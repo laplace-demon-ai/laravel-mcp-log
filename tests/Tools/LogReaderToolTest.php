@@ -8,11 +8,14 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
 use LaplaceDemonAI\LaravelMcpLog\Tests\TestCase;
 use LaplaceDemonAI\LaravelMcpLog\Tools\LogReaderTool;
+use Laravel\Mcp\Response;
+use Laravel\Mcp\Server\Content\Text as McpTextContent;
 use MoeMizrak\LaravelLogReader\Enums\FilterKeyType;
 use MoeMizrak\LaravelLogReader\Enums\LogDriverType;
 use MoeMizrak\LaravelLogReader\Enums\LogTableColumnType;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\Test;
+use ReflectionObject;
 
 #[CoversClass(LogReaderTool::class)]
 final class LogReaderToolTest extends TestCase
@@ -51,6 +54,7 @@ final class LogReaderToolTest extends TestCase
             'laravel-mcp-log.tool.title' => 'Log Reader Tool',
             'laravel-mcp-log.tool.description' => 'A tool to read and analyze application log data via MCP.',
         ]);
+
         $this->tool = new LogReaderTool;
     }
 
@@ -74,9 +78,10 @@ final class LogReaderToolTest extends TestCase
         $response = $this->tool->handle($input);
 
         /* ASSERT */
-        $this->assertTrue($response['success']);
-        $this->assertSame(1, $response['count']);
-        $this->assertSame('User logged in', $response['data'][0]['message']);
+        $this->assertInstanceOf(Response::class, $response);
+        $data = $this->extractJsonArrayFromResponse($response);
+        $this->assertCount(1, $data);
+        $this->assertSame('User logged in', $data[0]['message']);
     }
 
     #[Test]
@@ -89,8 +94,9 @@ final class LogReaderToolTest extends TestCase
         $response = $this->tool->handle($input);
 
         /* ASSERT */
-        $this->assertTrue($response['success']);
-        $this->assertSame(3, $response['count']);
+        $this->assertInstanceOf(Response::class, $response);
+        $data = $this->extractJsonArrayFromResponse($response);
+        $this->assertCount(3, $data);
     }
 
     #[Test]
@@ -103,9 +109,10 @@ final class LogReaderToolTest extends TestCase
         $response = $this->tool->handle($input);
 
         /* ASSERT */
-        $this->assertTrue($response['success']);
-        $this->assertSame(1, $response['count']);
-        $this->assertSame('Payment failed', $response['data'][0]['message']);
+        $this->assertInstanceOf(Response::class, $response);
+        $data = $this->extractJsonArrayFromResponse($response);
+        $this->assertCount(1, $data);
+        $this->assertSame('Payment failed', $data[0]['message']);
     }
 
     #[Test]
@@ -119,8 +126,10 @@ final class LogReaderToolTest extends TestCase
         $responseAll = $this->tool->handle(['filters' => [FilterKeyType::DATE_FROM->value => $yesterday]]);
 
         /* ASSERT */
-        $this->assertSame(0, $responseNone['count']);
-        $this->assertSame(3, $responseAll['count']);
+        $this->assertInstanceOf(Response::class, $responseNone);
+        $this->assertInstanceOf(Response::class, $responseAll);
+        $this->assertCount(0, $this->extractJsonArrayFromResponse($responseNone));
+        $this->assertCount(3, $this->extractJsonArrayFromResponse($responseAll));
     }
 
     #[Test]
@@ -133,8 +142,9 @@ final class LogReaderToolTest extends TestCase
         $response = $this->tool->handle(['query' => '', 'filters' => []]);
 
         /* ASSERT */
-        $this->assertFalse($response['success']);
-        $this->assertSame('Failed to read logs. Check server logs for details.', $response['error']);
+        $this->assertInstanceOf(Response::class, $response);
+        $text = $this->responseText($response);
+        $this->assertStringContainsString('Failed to read logs. Check server logs for details.', $text);
     }
 
     #[Test]
@@ -155,8 +165,9 @@ LOGS);
         $response = $this->tool->handle(['query' => '', 'filters' => []]);
 
         /* ASSERT */
-        $this->assertTrue($response['success']);
-        $this->assertSame(2, $response['count']);
+        $this->assertInstanceOf(Response::class, $response);
+        $data = $this->extractJsonArrayFromResponse($response);
+        $this->assertCount(2, $data);
 
         unlink($logFile);
     }
@@ -179,12 +190,107 @@ LOGS);
         $response = $this->tool->handle(['query' => 'failure', 'filters' => []]);
 
         /* ASSERT */
-        $this->assertTrue($response['success']);
-        $this->assertSame(1, $response['count']);
-        $this->assertSame('Second entry {"context":"failure"}', $response['data'][0]['message']);
+        $this->assertInstanceOf(Response::class, $response);
+        $data = $this->extractJsonArrayFromResponse($response);
+        $this->assertCount(1, $data);
+        $this->assertSame('Second entry {"context":"failure"}', $data[0]['message']);
 
-        // Teardown
         unlink($logFile);
+    }
+
+    /* ------------------------- Helpers ------------------------- */
+
+    private function responseText(Response $response): string
+    {
+        // 1) Try a conventional accessor if present
+        if (method_exists($response, 'content')) {
+            $content = $response->content();
+
+            // Some implementations may return string content directly
+            if (is_string($content)) {
+                return $content;
+            }
+
+            // If it's the MCP Text content object, try the common access patterns
+            if ($content instanceof McpTextContent) {
+                // Prefer a public getter if available
+                if (method_exists($content, 'text')) {
+                    return (string) $content->text();
+                }
+
+                // Fallback to array shape if provided
+                if (method_exists($content, 'toArray')) {
+                    $arr = $content->toArray();
+                    if (is_array($arr) && isset($arr['text'])) {
+                        return (string) $arr['text'];
+                    }
+                }
+            }
+
+            // Generic fallback: try toArray() for any content type
+            if (is_object($content) && method_exists($content, 'toArray')) {
+                $arr = $content->toArray();
+                if (is_array($arr) && isset($arr['text'])) {
+                    return (string) $arr['text'];
+                }
+            }
+        }
+
+        // 2) Reflection fallback (matches your dd() shape: protected #content->#text)
+        $ref = new ReflectionObject($response);
+        if ($ref->hasProperty('content')) {
+            $prop = $ref->getProperty('content');
+            $prop->setAccessible(true);
+            $content = $prop->getValue($response);
+
+            if (is_string($content)) {
+                return $content;
+            }
+
+            if ($content instanceof McpTextContent) {
+                $cref = new ReflectionObject($content);
+                if ($cref->hasProperty('text')) {
+                    $p = $cref->getProperty('text');
+                    $p->setAccessible(true);
+                    $text = $p->getValue($content);
+                    if (is_string($text)) {
+                        return $text;
+                    }
+                }
+            }
+
+            if (is_object($content)) {
+                if (method_exists($content, '__toString')) {
+                    return (string) $content;
+                }
+                if (method_exists($content, 'toArray')) {
+                    $arr = $content->toArray();
+                    if (is_array($arr) && isset($arr['text'])) {
+                        return (string) $arr['text'];
+                    }
+                }
+            }
+        }
+
+        // 3) Absolute last resort
+        if (method_exists($response, '__toString')) {
+            return (string) $response;
+        }
+
+        $this->fail('Unable to read text content from MCP Response object.');
+    }
+
+    private function extractJsonArrayFromResponse(Response $response): array
+    {
+        $text = $this->responseText($response);
+
+        if (preg_match('/(\[[\s\S]*\])\s*$/', $text, $m) === 1) {
+            $decoded = json_decode($m[1], true);
+            $this->assertIsArray($decoded, 'Response did not contain valid JSON array payload.');
+            return $decoded ?? [];
+        }
+
+        $this->fail('No JSON array found in tool response text.');
     }
 
     private function createLogsTable(): void
