@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace LaplaceDemonAI\LaravelMcpLog\Tests;
 
-use Orchestra\Testbench\TestCase as Orchestra;
 use LaplaceDemonAI\LaravelMcpLog\LaravelMcpLogServiceProvider;
+use Orchestra\Testbench\TestCase as Orchestra;
 
 /**
  * Base test case for the package.
