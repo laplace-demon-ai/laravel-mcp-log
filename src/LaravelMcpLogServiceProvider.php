@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace LaplaceDemonAI\LaravelMcpLog;
 
-use Illuminate\Support\Arr;
 use Illuminate\Support\ServiceProvider;
 use LaplaceDemonAI\LaravelMcpLog\Servers\LogReaderServer;
 use Laravel\Mcp\Facades\Mcp;
@@ -67,15 +66,9 @@ final class LaravelMcpLogServiceProvider extends ServiceProvider
      */
     protected function registerMcpServers(): void
     {
-        $servers = config('laravel-mcp-log.servers', []);
-        $localEnabled = Arr::get($servers, 'local', false);
-        $webEnabled = Arr::get($servers, 'web', false);
+        $enabled = config('laravel-mcp-log.enabled', false);
 
-        if ($localEnabled) {
-            Mcp::local('mcp/log-reader', LogReaderServer::class);
-        }
-
-        if ($webEnabled) {
+        if ($enabled) {
             Mcp::web('mcp/log-reader', LogReaderServer::class);
         }
     }

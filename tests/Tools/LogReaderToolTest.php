@@ -8,6 +8,7 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
 use LaplaceDemonAI\LaravelMcpLog\Tests\TestCase;
 use LaplaceDemonAI\LaravelMcpLog\Tools\LogReaderTool;
+use Laravel\Mcp\Request;
 use Laravel\Mcp\Response;
 use Laravel\Mcp\Server\Content\Text as McpTextContent;
 use MoeMizrak\LaravelLogReader\Enums\FilterKeyType;
@@ -63,8 +64,7 @@ final class LogReaderToolTest extends TestCase
     {
         /* SETUP */
         config([
-            'laravel-mcp-log.servers.local' => false,
-            'laravel-mcp-log.servers.web' => false,
+            'laravel-mcp-log.enabled' => false,
         ]);
 
         /* ASSERT */
@@ -75,13 +75,12 @@ final class LogReaderToolTest extends TestCase
     public function it_returns_success_response_with_data(): void
     {
         /* SETUP */
-        $input = ['query' => 'User logged in', 'filters' => []];
+        $request = new Request(['query' => 'User logged in', 'filters' => []]);
 
         /* EXECUTE */
-        $response = $this->tool->handle($input);
+        $response = $this->tool->handle($request);
 
         /* ASSERT */
-        $this->assertInstanceOf(Response::class, $response);
         $data = $this->extractJsonArrayFromResponse($response);
         $this->assertCount(1, $data);
         $this->assertSame('User logged in', $data[0]['message']);
@@ -91,13 +90,12 @@ final class LogReaderToolTest extends TestCase
     public function it_returns_success_with_empty_query_and_filters(): void
     {
         /* SETUP */
-        $input = ['query' => '', 'filters' => []];
+        $request = new Request(['query' => '', 'filters' => []]);
 
         /* EXECUTE */
-        $response = $this->tool->handle($input);
+        $response = $this->tool->handle($request);
 
         /* ASSERT */
-        $this->assertInstanceOf(Response::class, $response);
         $data = $this->extractJsonArrayFromResponse($response);
         $this->assertCount(3, $data);
     }
@@ -106,13 +104,12 @@ final class LogReaderToolTest extends TestCase
     public function it_applies_filters_and_returns_matching_results(): void
     {
         /* SETUP */
-        $input = ['query' => '', 'filters' => [FilterKeyType::LEVEL->value => 'error']];
+        $request = new Request(['filters' => [FilterKeyType::LEVEL->value => 'error']]);
 
         /* EXECUTE */
-        $response = $this->tool->handle($input);
+        $response = $this->tool->handle($request);
 
         /* ASSERT */
-        $this->assertInstanceOf(Response::class, $response);
         $data = $this->extractJsonArrayFromResponse($response);
         $this->assertCount(1, $data);
         $this->assertSame('Payment failed', $data[0]['message']);
@@ -125,12 +122,10 @@ final class LogReaderToolTest extends TestCase
         $yesterday = now()->subDay()->setTime(23, 59, 59)->toDateTimeString();
 
         /* EXECUTE */
-        $responseNone = $this->tool->handle(['filters' => [FilterKeyType::DATE_TO->value => $yesterday]]);
-        $responseAll = $this->tool->handle(['filters' => [FilterKeyType::DATE_FROM->value => $yesterday]]);
+        $responseNone = $this->tool->handle(new Request(['filters' => [FilterKeyType::DATE_TO->value => $yesterday]]));
+        $responseAll = $this->tool->handle(new Request(['filters' => [FilterKeyType::DATE_FROM->value => $yesterday]]));
 
         /* ASSERT */
-        $this->assertInstanceOf(Response::class, $responseNone);
-        $this->assertInstanceOf(Response::class, $responseAll);
         $this->assertCount(0, $this->extractJsonArrayFromResponse($responseNone));
         $this->assertCount(3, $this->extractJsonArrayFromResponse($responseAll));
     }
@@ -140,12 +135,12 @@ final class LogReaderToolTest extends TestCase
     {
         /* SETUP */
         config(['laravel-log-reader.db.table' => 'invalid_table']);
+        $request = new Request(['query' => '', 'filters' => []]);
 
         /* EXECUTE */
-        $response = $this->tool->handle(['query' => '', 'filters' => []]);
+        $response = $this->tool->handle($request);
 
         /* ASSERT */
-        $this->assertInstanceOf(Response::class, $response);
         $text = $this->responseText($response);
         $this->assertStringContainsString('Failed to read logs. Check server logs for details.', $text);
     }
@@ -165,10 +160,9 @@ LOGS);
         ]);
 
         /* EXECUTE */
-        $response = $this->tool->handle(['query' => '', 'filters' => []]);
+        $response = $this->tool->handle(new Request(['query' => '', 'filters' => []]));
 
         /* ASSERT */
-        $this->assertInstanceOf(Response::class, $response);
         $data = $this->extractJsonArrayFromResponse($response);
         $this->assertCount(2, $data);
 
@@ -190,10 +184,9 @@ LOGS);
         ]);
 
         /* EXECUTE */
-        $response = $this->tool->handle(['query' => 'failure', 'filters' => []]);
+        $response = $this->tool->handle(new Request(['query' => 'failure', 'filters' => []]));
 
         /* ASSERT */
-        $this->assertInstanceOf(Response::class, $response);
         $data = $this->extractJsonArrayFromResponse($response);
         $this->assertCount(1, $data);
         $this->assertSame('Second entry {"context":"failure"}', $data[0]['message']);
@@ -201,46 +194,84 @@ LOGS);
         unlink($logFile);
     }
 
+    #[Test]
+    public function it_returns_error_on_invalid_date_format(): void
+    {
+        /* SETUP */
+        $request = new Request(['filters' => ['date_from' => 'not-a-date']]);
+
+        /* EXECUTE */
+        $response = $this->tool->handle($request);
+
+        /* ASSERT */
+        $text = $this->responseText($response);
+        $this->assertStringContainsString('Validation failed:', $text);
+    }
+
+    #[Test]
+    public function it_returns_error_when_date_to_is_before_date_from(): void
+    {
+        /* SETUP */
+        $request = new Request(['filters' => ['date_from' => '2025-01-10', 'date_to' => '2025-01-01']]);
+
+        /* EXECUTE */
+        $response = $this->tool->handle($request);
+
+        /* ASSERT */
+        $text = $this->responseText($response);
+        $this->assertStringContainsString('Validation failed:', $text);
+    }
+
+    #[Test]
+    public function it_returns_error_when_filters_is_not_array(): void
+    {
+        /* SETUP */
+        $request = new Request(['filters' => 'not-an-array']);
+
+        /* EXECUTE */
+        $response = $this->tool->handle($request);
+
+        /* ASSERT */
+        $text = $this->responseText($response);
+        $this->assertStringContainsString('Validation failed:', $text);
+    }
+
     /* ------------------------- Helpers ------------------------- */
 
     private function responseText(Response $response): string
     {
-        // 1) Try a conventional accessor if present
         if (method_exists($response, 'content')) {
             $content = $response->content();
 
-            // Some implementations may return string content directly
             if (is_string($content)) {
                 return $content;
             }
 
-            // If it's the MCP Text content object, try the common access patterns
             if ($content instanceof McpTextContent) {
-                // Prefer a public getter if available
                 if (method_exists($content, 'text')) {
                     return (string) $content->text();
                 }
 
-                // Fallback to array shape if provided
                 if (method_exists($content, 'toArray')) {
                     $arr = $content->toArray();
+
                     if (is_array($arr) && isset($arr['text'])) {
                         return (string) $arr['text'];
                     }
                 }
             }
 
-            // Generic fallback: try toArray() for any content type
             if (is_object($content) && method_exists($content, 'toArray')) {
                 $arr = $content->toArray();
+
                 if (is_array($arr) && isset($arr['text'])) {
                     return (string) $arr['text'];
                 }
             }
         }
 
-        // 2) Reflection fallback (matches your dd() shape: protected #content->#text)
         $ref = new ReflectionObject($response);
+
         if ($ref->hasProperty('content')) {
             $prop = $ref->getProperty('content');
             $prop->setAccessible(true);
@@ -252,10 +283,12 @@ LOGS);
 
             if ($content instanceof McpTextContent) {
                 $cref = new ReflectionObject($content);
+
                 if ($cref->hasProperty('text')) {
                     $p = $cref->getProperty('text');
                     $p->setAccessible(true);
                     $text = $p->getValue($content);
+
                     if (is_string($text)) {
                         return $text;
                     }
@@ -275,7 +308,6 @@ LOGS);
             }
         }
 
-        // 3) Absolute last resort
         if (method_exists($response, '__toString')) {
             return (string) $response;
         }
@@ -290,6 +322,7 @@ LOGS);
         if (preg_match('/(\[[\s\S]*\])\s*$/', $text, $m) === 1) {
             $decoded = json_decode($m[1], true);
             $this->assertIsArray($decoded, 'Response did not contain valid JSON array payload.');
+
             return $decoded ?? [];
         }
 

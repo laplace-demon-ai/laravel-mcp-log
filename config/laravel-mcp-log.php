@@ -8,13 +8,10 @@ use MoeMizrak\LaravelLogReader\Enums\LogTableColumnType;
 return [
     /*
     |--------------------------------------------------------------------------
-    | Enable or disable the MCP Log Reader Tool for the local and web servers
+    | Enable or disable the MCP Log Reader Tool.
     |--------------------------------------------------------------------------
     */
-    'servers' => [
-        'local' => env('MCP_LOG_READER_LOCAL_ENABLED', false), // disable for local server by default
-        'web' => env('MCP_LOG_READER_WEB_ENABLED', true), // enable for web server by default
-    ],
+    'enabled' => env('MCP_LOG_READER_ENABLED', true),
 
     /*
     |--------------------------------------------------------------------------
