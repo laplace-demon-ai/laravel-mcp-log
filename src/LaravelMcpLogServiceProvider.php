@@ -72,11 +72,11 @@ final class LaravelMcpLogServiceProvider extends ServiceProvider
         $webEnabled = Arr::get($servers, 'web', false);
 
         if ($localEnabled) {
-            Mcp::local('log-reader', LogReaderServer::class);
+            Mcp::local('mcp/log-reader', LogReaderServer::class);
         }
 
         if ($webEnabled) {
-            Mcp::web('log-reader', LogReaderServer::class);
+            Mcp::web('mcp/log-reader', LogReaderServer::class);
         }
     }
 
