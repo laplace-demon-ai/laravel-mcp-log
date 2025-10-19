@@ -101,7 +101,12 @@ final class LogReaderTool extends Tool
      */
     public function shouldRegister(): bool
     {
-        return (bool) config('laravel-mcp-log.enabled', true);
+        $servers = config('laravel-mcp-log.servers', []);
+        $localEnabled = Arr::get($servers, 'local', false);
+        $webEnabled = Arr::get($servers, 'web', false);
+
+        // Register if at least one log reader is enabled
+        return $localEnabled || $webEnabled;
     }
 
     /**

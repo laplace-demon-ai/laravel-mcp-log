@@ -59,10 +59,13 @@ final class LogReaderToolTest extends TestCase
     }
 
     #[Test]
-    public function it_respects_enabled_flag(): void
+    public function it_respects_enabled_flag_for_either_server(): void
     {
         /* SETUP */
-        config(['laravel-mcp-log.enabled' => false]);
+        config([
+            'laravel-mcp-log.servers.local' => false,
+            'laravel-mcp-log.servers.web' => false,
+        ]);
 
         /* ASSERT */
         $this->assertFalse($this->tool->shouldRegister());
