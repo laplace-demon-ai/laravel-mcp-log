@@ -2,19 +2,17 @@
 
 declare(strict_types=1);
 
+use MoeMizrak\LaravelLogReader\Enums\ColumnType;
 use MoeMizrak\LaravelLogReader\Enums\LogDriverType;
 use MoeMizrak\LaravelLogReader\Enums\LogTableColumnType;
 
 return [
     /*
     |--------------------------------------------------------------------------
-    | Enable or disable the MCP Log Reader Tool for the local and web servers
+    | Enable or disable the MCP Log Reader Tool.
     |--------------------------------------------------------------------------
     */
-    'servers' => [
-        'local' => env('MCP_LOG_READER_LOCAL_ENABLED', false), // disable for local server by default
-        'web' => env('MCP_LOG_READER_WEB_ENABLED', true), // enable for web server by default
-    ],
+    'enabled' => env('MCP_LOG_READER_ENABLED', true),
 
     /*
     |--------------------------------------------------------------------------
@@ -28,13 +26,13 @@ return [
 
         'file' => [
             'path' => env('LOG_FILE_PATH', storage_path('logs/laravel.log')),
-            'chunk_size' => env('LOG_READER_FILE_CHUNK_SIZE', 512 * 1024), // 512KB for file reading
+            'limit' => env('LOG_READER_FILE_QUERY_LIMIT', 10000), // max number of lines to read
         ],
 
         'db' => [
             'table' => env('LOG_DB_TABLE_NAME', 'logs'),
             'connection' => env('LOG_DB_CONNECTION'),
-            'chunk_size' => env('LOG_READER_DB_CHUNK_SIZE', 500),
+            'limit' => env('LOG_READER_DB_QUERY_LIMIT', 10000), // max number of records to fetch in queries
 
             // Column mapping: maps DB columns to LogData properties
             'columns' => [
@@ -47,11 +45,10 @@ return [
                 LogTableColumnType::EXTRA->value => 'extra', // any extra data, often JSON e.g. '{"ip":172.0.0.1, "session_id":"abc", "user_id":123}'
             ],
 
-            // Columns that should be searchable in DB queries
             'searchable_columns' => [
-                LogTableColumnType::MESSAGE->value,
-                LogTableColumnType::CONTEXT->value,
-                LogTableColumnType::EXTRA->value,
+                ['name' => LogTableColumnType::MESSAGE->value, 'type' => ColumnType::TEXT->value],
+                ['name' => LogTableColumnType::CONTEXT->value, 'type' => ColumnType::JSON->value],
+                ['name' => LogTableColumnType::EXTRA->value, 'type' => ColumnType::JSON->value],
             ],
         ],
     ],

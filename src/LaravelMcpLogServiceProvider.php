@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace LaplaceDemonAI\LaravelMcpLog;
 
-use Illuminate\Support\Arr;
 use Illuminate\Support\ServiceProvider;
 use LaplaceDemonAI\LaravelMcpLog\Servers\LogReaderServer;
 use Laravel\Mcp\Facades\Mcp;
@@ -67,15 +66,9 @@ final class LaravelMcpLogServiceProvider extends ServiceProvider
      */
     protected function registerMcpServers(): void
     {
-        $servers = config('laravel-mcp-log.servers', []);
-        $localEnabled = Arr::get($servers, 'local', false);
-        $webEnabled = Arr::get($servers, 'web', false);
+        $enabled = config('laravel-mcp-log.enabled', false);
 
-        if ($localEnabled) {
-            Mcp::local('mcp/log-reader', LogReaderServer::class);
-        }
-
-        if ($webEnabled) {
+        if ($enabled) {
             Mcp::web('mcp/log-reader', LogReaderServer::class);
         }
     }
@@ -89,10 +82,10 @@ final class LaravelMcpLogServiceProvider extends ServiceProvider
         if (! config('laravel-log-reader')) {
             config(['laravel-log-reader.driver' => config('laravel-mcp-log.log_reader.driver')]);
             config(['laravel-log-reader.file.path' => config('laravel-mcp-log.log_reader.file.path')]);
-            config(['laravel-log-reader.file.chunk_size' => config('laravel-mcp-log.log_reader.file.chunk_size')]);
+            config(['laravel-log-reader.file.limit' => config('laravel-mcp-log.log_reader.file.limit')]);
             config(['laravel-log-reader.db.table' => config('laravel-mcp-log.log_reader.db.table')]);
             config(['laravel-log-reader.db.connection' => config('laravel-mcp-log.log_reader.db.connection')]);
-            config(['laravel-log-reader.db.chunk_size' => config('laravel-mcp-log.log_reader.db.chunk_size')]);
+            config(['laravel-log-reader.db.limit' => config('laravel-mcp-log.log_reader.db.limit')]);
             config([
                 'laravel-log-reader.db.columns' => config('laravel-mcp-log.log_reader.db.columns'),
             ]);

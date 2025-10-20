@@ -5,8 +5,9 @@ declare(strict_types=1);
 namespace LaplaceDemonAI\LaravelMcpLog\Tools;
 
 use Illuminate\JsonSchema\JsonSchema;
-use Illuminate\Support\Arr;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\Validator;
+use Laravel\Mcp\Request;
 use Laravel\Mcp\Response;
 use Laravel\Mcp\Server\Tool;
 use MoeMizrak\LaravelLogReader\Data\LogData;
@@ -28,22 +29,24 @@ final class LogReaderTool extends Tool
         $this->description = config('laravel-mcp-log.tool.description');
     }
 
-    /**
-     * @param array{
-     *    query?: string,
-     *    filters?: array{
-     *       level?: string,
-     *       date_from?: string,
-     *       date_to?: string,
-     *       channel?: string,
-     *    }
-     * } $input
-     */
-    public function handle(array $input = []): Response
+    public function handle(Request $request): Response
     {
         try {
-            $query = (string) Arr::get($input, 'query', '');
-            $filters = (array) Arr::get($input, 'filters', []);
+            $validator = Validator::make($request->all(), [
+                'query' => ['nullable', 'string'],
+                'filters' => ['nullable', 'array'],
+                'filters.level' => ['nullable', 'string'],
+                'filters.channel' => ['nullable', 'string'],
+                'filters.date_from' => ['nullable', 'date'],
+                'filters.date_to' => ['nullable', 'date', 'after_or_equal:filters.date_from'],
+            ]);
+
+            if ($validator->fails()) {
+                return Response::error('Validation failed: ' . $validator->errors()->toJson());
+            }
+
+            $query = $request->get('query', '');
+            $filters = $request->get('filters', []);
 
             // Normalize date filters
             foreach (['date_from', 'date_to'] as $key) {
@@ -57,8 +60,6 @@ final class LogReaderTool extends Tool
             if ($query !== '') {
                 $reader = $reader->search($query);
             }
-
-            $reader = $reader->chunk();
 
             $results = $reader->execute();
 
@@ -101,12 +102,7 @@ final class LogReaderTool extends Tool
      */
     public function shouldRegister(): bool
     {
-        $servers = config('laravel-mcp-log.servers', []);
-        $localEnabled = Arr::get($servers, 'local', false);
-        $webEnabled = Arr::get($servers, 'web', false);
-
-        // Register if at least one log reader is enabled
-        return $localEnabled || $webEnabled;
+        return (bool) config('laravel-mcp-log.enabled', false);
     }
 
     /**
