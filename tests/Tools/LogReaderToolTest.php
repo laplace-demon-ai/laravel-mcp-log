@@ -11,6 +11,7 @@ use LaplaceDemonAI\LaravelMcpLog\Tools\LogReaderTool;
 use Laravel\Mcp\Request;
 use Laravel\Mcp\Response;
 use Laravel\Mcp\Server\Content\Text as McpTextContent;
+use MoeMizrak\LaravelLogReader\Enums\ColumnType;
 use MoeMizrak\LaravelLogReader\Enums\FilterKeyType;
 use MoeMizrak\LaravelLogReader\Enums\LogDriverType;
 use MoeMizrak\LaravelLogReader\Enums\LogTableColumnType;
@@ -46,11 +47,10 @@ final class LogReaderToolTest extends TestCase
                 LogTableColumnType::EXTRA->value => 'extra',
             ],
             'laravel-log-reader.db.searchable_columns' => [
-                LogTableColumnType::MESSAGE->value,
-                LogTableColumnType::CONTEXT->value,
-                LogTableColumnType::EXTRA->value,
+                ['name' => LogTableColumnType::MESSAGE->value, 'type' => ColumnType::TEXT->value],
+                ['name' => LogTableColumnType::CONTEXT->value, 'type' => ColumnType::JSON->value],
+                ['name' => LogTableColumnType::EXTRA->value, 'type' => ColumnType::JSON->value],
             ],
-
             'laravel-mcp-log.tool.name' => 'log-reader',
             'laravel-mcp-log.tool.title' => 'Log Reader Tool',
             'laravel-mcp-log.tool.description' => 'A tool to read and analyze application log data via MCP.',
@@ -236,6 +236,69 @@ LOGS);
         $this->assertStringContainsString('Validation failed:', $text);
     }
 
+    #[Test]
+    public function it_respects_db_limit_and_does_not_exceed_max_records(): void
+    {
+        /* SETUP */
+        config([
+            'laravel-log-reader.driver' => LogDriverType::DB->value,
+            'laravel-log-reader.db.limit' => 50,
+        ]);
+        $rows = [];
+        $base = now()->subHours(1);
+        for ($i = 1; $i <= 120; $i++) {
+            $rows[] = [
+                'level' => 'info',
+                'message' => "Generated log #{$i}",
+                'channel' => 'test',
+                'context' => '{}',
+                'extra' => '{}',
+                'created_at' => $base->copy()->addSeconds($i),
+            ];
+        }
+        DB::table($this->table)->insert($rows);
+        $request = new Request(['query' => '', 'filters' => []]);
+
+        /* EXECUTE */
+        $response = $this->tool->handle($request);
+
+        /* ASSERT */
+        $data = $this->extractJsonArrayFromResponse($response);
+        $this->assertCount(50, $data);
+    }
+
+    #[Test]
+    public function it_limits_results_for_file_driver(): void
+    {
+        /* SETUP */
+        $logFile = tempnam(sys_get_temp_dir(), 'mcp_log_');
+
+        // Create a file with far more lines than the limit
+        $lines = [];
+        $base = now()->subHours(1);
+        for ($i = 1; $i <= 120; $i++) {
+            $ts = $base->copy()->addSeconds($i)->format('Y-m-d H:i:s');
+            $level = $i % 2 === 0 ? 'ERROR' : 'INFO';
+            $lines[] = "[{$ts}] local.{$level}: Entry {$i}";
+        }
+        file_put_contents($logFile, implode(PHP_EOL, $lines));
+        config([
+            'laravel-log-reader.driver' => LogDriverType::FILE->value,
+            'laravel-log-reader.file.path' => $logFile,
+            'laravel-log-reader.file.limit' => 50,
+        ]);
+        $request = new Request(['query' => '', 'filters' => []]);
+
+        /* EXECUTE */
+        $response = $this->tool->handle($request);
+
+        /* ASSERT */
+        $data = $this->extractJsonArrayFromResponse($response);
+        $this->assertCount(50, $data);
+
+        unlink($logFile);
+    }
+
     /* ------------------------- Helpers ------------------------- */
 
     private function responseText(Response $response): string
@@ -336,8 +399,8 @@ LOGS);
             level VARCHAR(20),
             message TEXT,
             channel VARCHAR(50),
-            context TEXT,
-            extra TEXT,
+            context JSON,
+            extra JSON,
             created_at DATETIME
         )");
     }

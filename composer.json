@@ -18,7 +18,7 @@
     "require": {
         "php": "^8.4",
         "laravel/mcp": "^0.3.0",
-        "moe-mizrak/laravel-log-reader": "^0.0.3"
+        "moe-mizrak/laravel-log-reader": "^0.0.5"
     },
     "require-dev": {
         "orchestra/testbench": "^9.6.1",

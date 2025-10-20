@@ -61,8 +61,6 @@ final class LogReaderTool extends Tool
                 $reader = $reader->search($query);
             }
 
-            $reader = $reader->chunk();
-
             $results = $reader->execute();
 
             /** @var array<int, array<string, mixed>> $data */

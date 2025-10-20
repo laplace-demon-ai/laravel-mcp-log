@@ -82,10 +82,10 @@ final class LaravelMcpLogServiceProvider extends ServiceProvider
         if (! config('laravel-log-reader')) {
             config(['laravel-log-reader.driver' => config('laravel-mcp-log.log_reader.driver')]);
             config(['laravel-log-reader.file.path' => config('laravel-mcp-log.log_reader.file.path')]);
-            config(['laravel-log-reader.file.chunk_size' => config('laravel-mcp-log.log_reader.file.chunk_size')]);
+            config(['laravel-log-reader.file.limit' => config('laravel-mcp-log.log_reader.file.limit')]);
             config(['laravel-log-reader.db.table' => config('laravel-mcp-log.log_reader.db.table')]);
             config(['laravel-log-reader.db.connection' => config('laravel-mcp-log.log_reader.db.connection')]);
-            config(['laravel-log-reader.db.chunk_size' => config('laravel-mcp-log.log_reader.db.chunk_size')]);
+            config(['laravel-log-reader.db.limit' => config('laravel-mcp-log.log_reader.db.limit')]);
             config([
                 'laravel-log-reader.db.columns' => config('laravel-mcp-log.log_reader.db.columns'),
             ]);
