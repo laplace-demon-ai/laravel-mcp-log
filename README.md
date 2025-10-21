@@ -94,6 +94,15 @@ Following is the video for a **quick demo** of how it works:
 
 [![Demo](assets/thumbnail_demo.png)](https://youtu.be/F5ZP6u4WTW4)
 
+## TODO (this is for [Laravel Log Reader](https://github.com/moe-mizrak/laravel-log-reader) )
+> - [ ] Add a `log_insights` migration/table which will be a normalized, summarized, and searchable table.
+  > - It unifies different log mechanisms into a single canonical format, enabling faster lookups over large data.
+  > - A background task should sync new log data periodically, basically everyday it summarizes the previous day's logs and inserts them into `log_insights`.
+  > - Be aware that summarization may lose some details (e.g., exact errors or stack traces).
+> - [ ] Add support for cloud log readers (AWS CloudWatch, Azure Monitor, Google Cloud Logging).
+> - [ ] Add streaming responses for overall logic.
+> - [ ] Use a cheap/free model to summarize large log files before search/filter (experimental approach).
+
 ## Contributing
 
 > **Your contributions are welcome!** If you'd like to improve this project, simply create a pull request with your changes. Your efforts help enhance its functionality and documentation.
