@@ -31,7 +31,6 @@ return [
 
         'db' => [
             'table' => env('LOG_DB_TABLE_NAME', 'logs'),
-            'connection' => env('LOG_DB_CONNECTION'),
             'limit' => env('LOG_READER_DB_QUERY_LIMIT', 10000), // max number of records to fetch in queries
 
             // Column mapping: maps DB columns to LogData properties
