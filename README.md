@@ -23,14 +23,14 @@ You can enable/disable the MCP Log Reader as:
 The package supports two log storage drivers: `file` and `db` for now.
 
 ### Database Logs
-If your logs are stored in database (`log_entries` table), in the config file (`laravel-mcp-log.php`) set the **driver** to `db` as:
+If your logs are stored in database (e.g. `log_entries` table), in the config file (`laravel-mcp-log.php`) set the **driver** to `db` as:
 ```php
 'driver' => env('LOG_READER_DRIVER', LogDriverType::DB->value),
 ```
 
 And set the other database related configurations as:
 ```php
-'table' => env('LOG_DB_TABLE_NAME', 'logs'),
+'table' => env('LOG_DB_TABLE_NAME', 'log_entries'),
 'limit' => env('LOG_READER_DB_QUERY_LIMIT', 10000), // max number of records to fetch in queries
 
 // Column mapping: maps DB columns to LogData properties
